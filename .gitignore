@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# Next.js
+/.next/
+/out/
+
+# local / production environment files
+.env
+.env.*
+!.env.example
+
+# Vercel local metadata
+.vercel
+
+# test / tooling
+coverage/
+*.log
+
+# OS / editor
+.DS_Store
+.Rhistory
+.localized
+.vscode/
+.idea/
