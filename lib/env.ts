@@ -3,18 +3,32 @@ export type ServerEnv = {
   supabaseSecretKey: string;
 };
 
-export function getServerEnv(source: NodeJS.ProcessEnv = process.env): ServerEnv {
+type ServerEnvSource = Record<string, string | undefined>;
+
+export function getServerEnv(
+  source: ServerEnvSource = process.env
+): ServerEnv {
   const supabaseUrl = source.SUPABASE_URL;
   const supabaseSecretKey = source.SUPABASE_SECRET_KEY;
 
-  const missing = [
-    !supabaseUrl ? "SUPABASE_URL" : null,
-    !supabaseSecretKey ? "SUPABASE_SECRET_KEY" : null
-  ].filter(Boolean);
+  if (!supabaseUrl || !supabaseSecretKey) {
+    const missing: string[] = [];
 
-  if (missing.length > 0) {
-    throw new Error(`Missing required server configuration: ${missing.join(", ")}`);
+    if (!supabaseUrl) {
+      missing.push("SUPABASE_URL");
+    }
+
+    if (!supabaseSecretKey) {
+      missing.push("SUPABASE_SECRET_KEY");
+    }
+
+    throw new Error(
+      `Missing required server configuration: ${missing.join(", ")}`
+    );
   }
 
-  return { supabaseUrl, supabaseSecretKey };
+  return {
+    supabaseUrl,
+    supabaseSecretKey
+  };
 }
