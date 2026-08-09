@@ -140,7 +140,7 @@ jobs:
 
       - name: Run live production acceptance tests
         env:
-          ACCEPTANCE_BASE_URL: ${{ needs.deploy_vercel.outputs.deployment_url }}
+          ACCEPTANCE_BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}
         run: node tests/acceptance/production-health.mjs
 
       - name: Report success
