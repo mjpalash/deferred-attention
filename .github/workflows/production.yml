@@ -97,7 +97,7 @@ jobs:
         run: npm ci
 
       - name: Install Vercel CLI
-        run: npm ci --global vercel@latest
+        run: npm install --global vercel@latest
 
       - name: Pull Vercel production environment
         env:
