@@ -3,9 +3,11 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { login } from "./actions";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    next?: string;
+  }>;
 };
-
 export default async function LoginPage({
   searchParams
 }: LoginPageProps) {
@@ -31,6 +33,11 @@ export default async function LoginPage({
         ) : null}
 
         <form className="login-form" action={login}>
+          <input
+            type="hidden"
+            name="next"
+            value={params.next ?? "/"}
+          />        
           <label>
             Email
             <input

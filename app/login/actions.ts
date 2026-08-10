@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
+import { safeNextPath } from "@/lib/auth/return-path";
 
 function credentials(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -12,6 +13,19 @@ function credentials(formData: FormData) {
   }
 
   return { email, password };
+}
+
+function safeNext(formData: FormData): string {
+  const next = String(formData.get("next") ?? "/");
+
+  if (
+    !next.startsWith("/") ||
+    next.startsWith("//")
+  ) {
+    return "/";
+  }
+
+  return next;
 }
 
 export async function login(formData: FormData) {
@@ -25,7 +39,10 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/");
+redirect(
+  safeNextPath(String(formData.get("next") ?? "/"))
+);  
+  // redirect(safeNext(formData));
 }
 
 export async function logout() {
