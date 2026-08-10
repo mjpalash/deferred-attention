@@ -1,7 +1,8 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { Item, ItemStatus } from "@/lib/items/domain";
+import { LocalTime } from "@/app/components/local-time";
 
 function looksLikeUrl(value: string) {
   try {
@@ -18,7 +19,7 @@ export function InboxApp({ initialItems }: { initialItems: Item[] }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const value = capture.trim();
@@ -103,9 +104,7 @@ export function InboxApp({ initialItems }: { initialItems: Item[] }) {
                 <p className="item-text">{item.rawText}</p>
               )}
 
-              <time dateTime={item.createdAt}>
-                {new Date(item.createdAt).toLocaleString()}
-              </time>
+              <LocalTime dateTime={item.createdAt} />
             </div>
 
             <div className="item-actions">
