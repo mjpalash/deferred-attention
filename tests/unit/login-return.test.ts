@@ -11,9 +11,12 @@ describe("pending share survives authentication", () => {
       text: "Interesting article"
     });
 
-    expect(next).toBe(
-      "/share?text=Interesting+article&url=https%3A%2F%2Fexample.com%2Farticle"
-    );
+    const [pathname, query = ""] = next.split("?");
+    const params = new URLSearchParams(query);
+
+    expect(pathname).toBe("/share");
+    expect(params.get("text")).toBe("Interesting article");
+    expect(params.get("url")).toBe("https://example.com/article");
   });
 
   it("preserves an optional shared title", () => {
