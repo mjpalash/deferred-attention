@@ -4,7 +4,7 @@
 
 Make saving from Android's Share Sheet as fast and frictionless as possible.
 
-Choosing **Later** from the Share Sheet is itself the user's save action. The app must save the shared content automatically, without requiring a second confirmation tap.
+Choosing **Later** from the Share Sheet is itself the user's save action. The app saves the shared content automatically, without requiring a second confirmation tap.
 
 ## Core user flow
 
@@ -12,23 +12,30 @@ Choosing **Later** from the Share Sheet is itself the user's save action. The ap
 Source app
   → Share
   → Later
-  → Saved
+  → Saved confirmation
+  → Back button / gesture
+  → Source app
 ```
 
-The user should not need to press **Save**, choose metadata, or wait for link enrichment.
+The user does not need to press **Save**, choose metadata, or wait for link enrichment.
+
+Because Android Web Share Target launches the PWA, the web app cannot reliably dismiss itself back to the originating app. The success screen therefore tells the user to use the phone Back button or gesture.
 
 ## In scope
 
 - Automatically save content received through the Android Web Share Target.
-- Remove the current Save/Cancel confirmation step from the normal share flow.
-- Support both:
-  - URLs
-  - plain text
+- Remove the previous Save/Cancel confirmation step.
+- Support both URLs and plain text.
 - Preserve shared content across authentication when the user is not already signed in.
-- Give minimal success or failure feedback.
+- After a successful save, show:
+  - a clear **Saved** confirmation;
+  - the URL or text that was saved;
+  - a short instruction to use the phone Back button/gesture to return.
+- Give a lightweight failure state if persistence fails.
 - Keep metadata enrichment completely outside the critical save path.
-- Structure capture so that persistence is owned by a reusable server-side/API boundary rather than by PWA-specific UI logic.
-- Avoid intentional client-side double submission where practical, but do not add network hops or schema complexity for perfect idempotency.
+- Structure capture around reusable server-side capture logic rather than PWA-specific UI logic.
+- Avoid intentional double submission where practical without adding latency-producing idempotency machinery.
+- Replace the old generic app icon with the Later **L + bookmark** mark.
 
 ## Performance rule
 
@@ -44,15 +51,30 @@ receive share
 
 Nothing else may block this path.
 
-In particular, preview metadata such as image, description, site name, favicon, Open Graph data, or content summaries must not be fetched before the item has been persisted.
+Preview metadata such as image, description, site name, favicon, Open Graph data, or summaries must not be fetched before persistence succeeds.
 
 ## Duplicate handling
 
 Fast save takes precedence over perfect exactly-once semantics.
 
-A single share action should normally create one item. The implementation should avoid obvious duplicate submission caused by its own UI or control flow, but it must not add an extra redirect, deduplication lookup, or database idempotency key to the critical path.
+A single share action should normally create one item. The implementation does not add an extra redirect, deduplication lookup, URL hash, or database idempotency key to the critical path.
 
-If rare duplicate saves are later observed in real use, handle them as a separate problem based on evidence.
+Saving the same URL again later is a valid new capture and must not be silently deduplicated.
+
+If real-world use later reveals meaningful duplicate-save problems, solve them separately using observed evidence.
+
+## Testing approach
+
+Slice 3 tests protect behavior and important contracts rather than incidental source-code structure.
+
+Examples of useful tests:
+- authenticated share → capture is attempted automatically;
+- unauthenticated share → content survives login;
+- URL and plain-text shares are persisted correctly;
+- persistence failure → success is not reported;
+- Android manifest exposes the required Web Share Target contract.
+
+Tests that merely assert imports, component/function names, exact object key sets, query-parameter order, or forbidden words in source code are intentionally avoided.
 
 ## Out of scope
 
@@ -65,16 +87,30 @@ If rare duplicate saves are later observed in real use, handle them as a separat
 - native Android/iOS share extensions
 - perfect idempotency guarantees
 - database capture-key schema changes
+- automatically returning to the originating Android app
 
 These belong to later slices or will be added only if real use shows they are needed.
 
-## Definition of success
+## Acceptance / definition of success
 
 From a source app such as X:
 
 1. Tap **Share**.
 2. Tap **Later**.
-3. Take no further action.
-4. The shared item is saved and appears in the Later inbox.
+3. Take no further save action.
+4. The content is persisted automatically.
+5. Later shows **Saved** plus the saved URL/text.
+6. Later tells the user to use the phone Back button/gesture to return.
+7. The item appears in the Later inbox.
 
-Failure or slowness in any later metadata-enrichment work must never prevent or delay the initial save.
+Additional acceptance cases:
+- plain-text shares work;
+- a logged-out user can authenticate without losing the pending share;
+- failed persistence does not falsely display success;
+- metadata/enrichment work does not participate in the save path.
+
+## Completion status
+
+**Code complete and local checks green.**
+
+Final branch closure should include deployed Android acceptance testing and then merge to `main`.
