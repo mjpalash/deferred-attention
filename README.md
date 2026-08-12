@@ -1,88 +1,121 @@
 # Deferred Attention
 
-A personal “save it for later, with zero friction” inbox. This repository currently contains **Slice 0 only**: the deployable technical skeleton and its health/CI/CD checks. Product behavior starts in Slice 1.
+Deferred Attention (“Later”) is a personal **save it now, come back when I have attention** inbox.
 
-See [`SPEC.md`](./SPEC.md) for the product specification and [`tests/features/slice-0.feature`](./tests/features/slice-0.feature) for the Slice 0 acceptance criteria.
+Its defining product rule is simple:
 
-## Slice 0 stack
+> **The cost of capturing something must approach the cost of sending it to myself on WhatsApp.**
+
+The application is being built in small vertical slices with behavioral acceptance criteria, a cumulative executable test suite, and a reflection after each slice.
+
+## What works today
+
+The current application includes:
+
+- Supabase authentication and user-owned data;
+- URL and plain-text capture;
+- one server-backed inbox across clients;
+- reverse-chronological inbox ordering;
+- Done and Keep lifecycle actions;
+- an installable PWA;
+- Android Web Share Target support;
+- preservation of a pending Android share through login;
+- instant Android capture: choosing **Later** in the Share Sheet saves automatically;
+- a lightweight Saved/failure result;
+- DB-backed health checks and an automated production deployment pipeline.
+
+Desktop one-click capture, the iOS fallback, search, notes, deletion, grouping, and link enrichment remain future work. See [`BACKLOG.md`](./BACKLOG.md).
+
+## Technology
 
 - Next.js + TypeScript
-- Vercel production hosting
+- React
 - Supabase Postgres
-- Vitest for focused unit tests
-- GitHub Actions for pre-deploy validation, migrations, deployment, and post-deploy acceptance
+- Supabase Auth
+- Vercel
+- Vitest
+- GitHub Actions
 
-The health endpoint is `GET /api/health`. It performs a **read-only** count query against `public.healthcheck`. The health endpoint never creates, updates, or deletes database data.
+## Repository guide
 
-Healthy response:
+- [`SPEC.md`](./SPEC.md) — current product requirements and non-goals
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — current technical design
+- [`SETUP.md`](./SETUP.md) — local, Preview and Production setup
+- [`PRINCIPLES.md`](./PRINCIPLES.md) — development process and documentation rules
+- [`BACKLOG.md`](./BACKLOG.md) — done, possible next work, deferred/rejected ideas
+- [`docs/reflections/`](./docs/reflections/) — historical slice reflections and Gherkin
+- [`tests/`](./tests/) — cumulative executable test suite
 
-```json
-{
-  "status": "ok",
-  "database": {
-    "status": "ok",
-    "check": "healthcheck_count",
-    "result": 1
-  }
-}
+Historical acceptance criteria are kept with each slice reflection. They are not the current executable test suite.
+
+## Local development
+
+```bash
+npm install
+cp .env.example .env.local
+# fill the required Supabase values
+npm run dev
 ```
 
-If the database query fails, the endpoint returns HTTP 503 with a generic response and no internal connection details.
+See [`SETUP.md`](./SETUP.md) for the complete environment configuration.
 
-## Local setup
-
-1. Install Node.js 22 or later.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env.local`.
-4. Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in `.env.local`.
-5. Provision the database migration using Supabase CLI or the production pipeline.
-6. Run `npm run dev`.
-7. Open `http://localhost:3000/api/health`.
+## Validation
 
 Useful commands:
 
 ```bash
 npm run typecheck
 npm test
+npm run test:repo
 npm run build
 npm run check
 ```
 
-To run the live acceptance test manually against a deployed environment:
+`npm run check` is the normal local completion gate:
+
+```text
+typecheck → tests → repository checks → production build
+```
+
+A deployed health acceptance test can also be run manually:
 
 ```bash
 ACCEPTANCE_BASE_URL=https://your-deployment.example npm run test:acceptance
 ```
 
-## Secrets
+## Deployment model
 
-Never commit real values from `.env.local`. `SUPABASE_SECRET_KEY` is server-only and must never use a `NEXT_PUBLIC_` prefix.
+Production deployment is controlled through GitHub Actions:
 
-The GitHub production workflow needs these encrypted GitHub Actions secrets:
+```text
+main
+  → validate
+  → apply changed Supabase migrations
+  → Vercel production deploy
+  → live acceptance check
+```
 
-- `SUPABASE_ACCESS_TOKEN`
-- `SUPABASE_DB_PASSWORD`
-- `SUPABASE_PROJECT_ID`
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+Feature branches can use Vercel Preview deployments for real-device and integration testing before merge.
 
-Vercel itself needs these production environment variables for the running Next.js application:
+Preview and Production are separate Vercel environments. Required runtime variables must be configured in each environment in which the app is expected to work.
 
-- `SUPABASE_URL`
-- `SUPABASE_SECRET_KEY`
+## Current Android capture flow
 
-## Production pipeline
+```text
+source app
+  → Share
+  → Later
+  → automatically saved
+  → Saved
+  → Android Back gesture/button
+```
 
-A push to `main` performs:
+The PWA cannot reliably dismiss itself and return to the originating Android application, so the final Back gesture/button is currently unavoidable.
 
-1. TypeScript validation, unit tests, and a production build.
-2. Detection of changes under `supabase/migrations/`.
-3. Supabase migration deployment only when migration files changed (or when manually dispatched).
-4. Vercel production deployment.
-5. Live acceptance testing against the deployed HTTPS health endpoint.
-6. A red GitHub Actions run if any stage fails. There is deliberately **no automatic rollback** in Slice 0.
+## Security
 
-## Scope boundary
+Never commit real environment values.
 
-Slice 0 does not implement capture, inbox, Done/Keep, search, Android sharing, desktop capture, or the iOS fallback. Those are later slices defined in the build plan and product spec.
+`SUPABASE_SECRET_KEY` is server-only and must never be exposed through a `NEXT_PUBLIC_` variable.
+
+The repository is public; committed fixtures/data must remain synthetic and contain no personal inbox content.
