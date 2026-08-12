@@ -67,7 +67,26 @@ export default async function SharePage({
         <h1>Deferred Attention</h1>
 
         {result.kind === "saved" ? (
-          <p className="message">Saved</p>
+          <>
+            <p className="message">Saved</p>
+
+            {shared.url ? (
+              <a
+                className="item-link"
+                href={shared.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {shared.url}
+              </a>
+            ) : (
+              <p className="item-text">{shared.rawText}</p>
+            )}
+
+            <p className="muted">
+              Use your phone&apos;s Back button or gesture to return to the app you were using.
+            </p>
+          </>
         ) : (
           <p className="message error">{result.message}</p>
         )}
