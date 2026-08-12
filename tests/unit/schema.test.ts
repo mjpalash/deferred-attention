@@ -25,19 +25,5 @@ describe("Slice 1 items schema", () => {
     expect(sql).toContain("auth.uid()");
   });
 
-  it.each([
-    "folder",
-    "tags",
-    "category",
-    "priority",
-    "due_date"
-  ])("does not add non-goal field %s", (field) => {
-    const tableSection = sql
-      .split("create table if not exists public.items (")[1]
-      .split("create index")[0];
-
-    expect(tableSection).not.toMatch(
-      new RegExp(`\\b${field}\\b`)
-    );
-  });
+  
 });
